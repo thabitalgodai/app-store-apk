@@ -5,14 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>منصة رفع التطبيقات</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
     <style>
         :root {
             --primary: #1a73e8;
             --success: #34A853;
-            --danger: #EA4335;
+            --danger: #4CAF50;
             --background: #f8f9fa;
             --surface: #ffffff;
             --border: #e0e0e0;
@@ -93,11 +90,12 @@
             overflow: hidden;
         }
 
-        .screenshot-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+        /* أضف هذا في الـ CSS */
+   .screenshot-item img {
+       max-width: 100%;
+       height: auto;
+       object-fit: contain;
+   }
 
         .file-upload-btn {
             width: 100%;
@@ -124,7 +122,7 @@
             background: #edf2f7;
             border-radius: 4px;
             overflow: hidden;
-            margin: 1.5rem 0;
+            margin: 1.0rem 0;
         }
 
         .progress {
@@ -146,7 +144,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
+            gap: 0.1rem;
             transition: background 0.3s;
         }
 
@@ -172,8 +170,50 @@
             color: #c53030;
             border: 1px solid #fed7d7;
         }
+        
+       .loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
 
-        upload.upload-options {
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    } 
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(0,0,0,0.2);
+} 
+
+        .upload-options {
     display: flex;
     width: 100%;           /* تأخذ عرض الشاشة */
     gap: 0.5rem;           /* مسافة بين البطاقات (اختياري) */
@@ -201,28 +241,7 @@
 
 .hidden {
     display: none;
-}  -options {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .option-card {
-            flex: 1;
-            padding: 1.5rem;
-            border: 2px solid var(--border);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .option-card:hover {
-            border-color: var(--primary);
-        }
-
-        .hidden {
-            display: none;
-        }
+} 
 
         .type-selector {
             padding: 12px;
@@ -231,7 +250,9 @@
             width: 100%;
             margin-bottom: 1rem;
         }
-        h1 {
+        
+
+    h1 {
       color: var(--primary);     /* اللون */
       font-size: 32px;           /* حجم الخط */
       font-weight: bold;         /* سمك الخط: normal | bold | 100-900 */
@@ -247,11 +268,12 @@
       padding: 15px;
       font-size: 18px;
     }
+
     </style>
 </head>
 <body>
     <div class="container">
-    	<h1>رفع تطبيق جديد</h1>
+        <h1>رفع تطبيق جديد</h1>
         <div class="header-section">
             <div class="icon-preview" id="iconPreviewContainer" onclick="document.getElementById('appIcon').click()">
                 <input type="file" id="appIcon" accept="image/*" hidden>
@@ -315,6 +337,22 @@
             <div class="progress-bar">
                 <div class="progress" id="progressBar"></div>
             </div>
+            <div id="uploadStatus" style="display: none; text-align: center; padding: 20px;">
+    <p style="margin-bottom: 10px; font-weight: bold;">جاري الرفع...</p>
+    <div class="loader"></div>
+    <div style="margin-top: 15px;">
+        <div id="progressBar" style="width: 0%; height: 8px; background: #4CAF50; transition: 0.3s;"></div>
+        <span id="progressText" style="display: block; margin-bottom: 10px;">0%</span>
+    </div>
+</div>
+
+<div id="successModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h3 style="color: #4CAF50;">✅ تم الرفع بنجاح!</h3>
+        <p>سيتم مراجعة التطبيق قبل النشر</p>
+        <button onclick="closeModal()" style="background: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">موافق</button>
+    </div>
+</div>
 
             <button type="submit" class="submit-btn">
                 <i class="material-icons-round">cloud_upload</i>
@@ -330,88 +368,96 @@
     736091318/771846811
   </footer>
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyD7A8-DKqjzeKEi9BavHLDJ18J_PT6bsT0",
-            authDomain: "mozkrh2.firebaseapp.com",
-            databaseURL: "https://mozkrh2-default-rtdb.firebaseio.com",
-            projectId: "mozkrh2",
-            storageBucket: "mozkrh2.appspot.com",
-            messagingSenderId: "1072010410647",
-            appId: "1:1072010410647:web:603ddf7d867db870b787d2"
-        };
-        
+   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="firebase-config.js"></script>
+
+<script>
+    
+    const db = firebase.database();
+    const storage = firebase.storage();
+    const auth = firebase.auth();
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // العناصر الأساسية
         const screenshotsInput = document.getElementById('screenshots');
         const screenshotsGrid = document.getElementById('screenshotsGrid');
+        const uploadForm = document.getElementById('uploadForm');
+        const submitBtn = document.querySelector('#uploadForm button[type="submit"]');
+        
+        // المتغيرات العامة
+        let uploadType = 'file';
+        let iconURL = '';
 
-        // معاينة صور الشرح
+        // ======= معاينة الصور =======
         screenshotsInput.addEventListener('change', function(e) {
             screenshotsGrid.innerHTML = '';
             const files = Array.from(e.target.files);
             
             files.forEach(file => {
+                if (!file.type.startsWith('image/')) return;
+                
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    const div = document.createElement('div');
-                    div.className = 'screenshot-item';
+                reader.onload = (event) => {
+                    const container = document.createElement('div');
+                    container.className = 'screenshot-item';
                     
                     const img = document.createElement('img');
-                    img.src = e.target.result;
+                    img.src = event.target.result;
+                    img.style.cssText = `
+                        width: 100%;
+                        height: 150px;
+                        object-fit: cover;
+                        border-radius: 8px;
+                    `;
                     
-                    const deleteBtn = document.createElement('span');
-                    deleteBtn.innerHTML = '×';
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = '×';
                     deleteBtn.style.cssText = `
                         position: absolute;
-                        top: 2px;
-                        left: 2px;
-                        color: red;
-                        cursor: pointer;
-                        background: white;
+                        top: 5px;
+                        left: 5px;
+                        background: red;
+                        color: white;
+                        border: none;
                         border-radius: 50%;
-                        width: 20px;
-                        height: 20px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-weight: bold;
+                        width: 25px;
+                        height: 25px;
+                        cursor: pointer;
+                        font-size: 18px;
                     `;
                     
                     deleteBtn.onclick = () => {
-                        div.remove();
+                        container.remove();
                         const newFiles = Array.from(screenshotsInput.files).filter(f => f !== file);
                         const dataTransfer = new DataTransfer();
                         newFiles.forEach(f => dataTransfer.items.add(f));
                         screenshotsInput.files = dataTransfer.files;
                     };
                     
-                    div.appendChild(img);
-                    div.appendChild(deleteBtn);
-                    screenshotsGrid.appendChild(div);
+                    container.appendChild(img);
+                    container.appendChild(deleteBtn);
+                    screenshotsGrid.appendChild(container);
                 };
                 reader.readAsDataURL(file);
             });
         });
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        const storage = firebase.storage();
-
-        let uploadType = 'file';
-        let iconURL = '';
-
-        // معالجة اختيار الأيقونة
+        // ======= معالجة الأيقونة =======
         document.getElementById('appIcon').addEventListener('change', function(e) {
             const file = e.target.files[0];
-            if (file) {
+            if (file && file.type.startsWith('image/')) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = (e) => {
                     document.getElementById('iconPreview').src = e.target.result;
-                }
+                };
                 reader.readAsDataURL(file);
             }
         });
 
-        // معالجة اختيار الملف
+        // ======= معالجة الملف =======
         document.getElementById('appFile').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -420,22 +466,33 @@
             }
         });
 
-        // معالجة اختيار طريقة الرفع
-        function handleFileOption(type) {
+        // ======= تبديل طريقة الرفع =======
+        window.handleFileOption = function(type) {
             uploadType = type;
             document.getElementById('fileUploadSection').classList.toggle('hidden', type !== 'file');
             document.getElementById('linkUploadSection').classList.toggle('hidden', type !== 'link');
-        }
+        };
 
-        // معالجة الرفع
-        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+        // ======= معالجة النموذج =======
+        uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             try {
-                // التحقق من البيانات المطلوبة
-                const screenshots = document.getElementById('screenshots').files;
+                // تعطيل الزر وإظهار حالة التحميل
+                submitBtn.disabled = true;
+                document.getElementById('uploadStatus').style.display = 'flex';
+                document.getElementById('progressText').textContent = '0%';
+
+                const user = auth.currentUser;
+                if (!user) {
+                    showAlert('error', 'يجب تسجيل الدخول أولاً');
+                    return;
+                }
+
+                // التحقق من البيانات
+                const screenshots = screenshotsInput.files;
                 const appType = document.getElementById('appType').value;
-                
+
                 if (!document.getElementById('appIcon').files[0]) {
                     showAlert('error', 'الرجاء اختيار أيقونة التطبيق');
                     return;
@@ -446,18 +503,13 @@
                     return;
                 }
 
-                // رفع الأيقونة
-                const iconFile = document.getElementById('appIcon').files[0];
-                iconURL = await uploadFile(iconFile, 'app-icons');
+                // رفع الملفات
+                const iconURL = await uploadFile(document.getElementById('appIcon').files[0], 'icons');
+                const screenshotUrls = await Promise.all(
+                    Array.from(screenshots).map(file => uploadFile(file, 'screenshots'))
+                );
 
-                // رفع الصور
-                const screenshotsUrls = [];
-                for (let i = 0; i < 3; i++) {
-                    const url = await uploadFile(screenshots[i], 'screenshots');
-                    screenshotsUrls.push(url);
-                }
-
-                // معالجة ملف/رابط التطبيق
+                // معالجة رابط التطبيق
                 let downloadLink, fileSize;
                 if (uploadType === 'file') {
                     const appFile = document.getElementById('appFile').files[0];
@@ -465,44 +517,50 @@
                         showAlert('error', 'الرجاء اختيار ملف التطبيق');
                         return;
                     }
-                    downloadLink = await uploadFile(appFile, 'app-files');
+                    downloadLink = await uploadFile(appFile, 'apps');
                     fileSize = (appFile.size / (1024 * 1024)).toFixed(1) + ' MB';
                 } else {
                     downloadLink = document.getElementById('appLink').value;
-                    if (!downloadLink) {
-                        showAlert('error', 'الرجاء إدخال رابط صحيح');
-                        return;
-                    }
-                    fileSize = document.getElementById('appSize').value || 'غير معروف';
+                    fileSize = document.getElementById('appSize').value || 'N/A';
                 }
 
-                // تحديد مسار قاعدة البيانات
-                const dbPath = appType === 'swb' ? 'data1' : 'data2';
-
-                // إنشاء كائن البيانات
+                // إنشاء بيانات التطبيق
                 const appData = {
                     title: document.getElementById('appTitle').value,
                     icon: iconURL,
                     dec: document.getElementById('appDescription').value,
                     size: fileSize,
                     type: appType,
-                    sc1: screenshotsUrls[0],
-                    sc2: screenshotsUrls[1],
-                    sc3: screenshotsUrls[2],
+                    sc1: screenshotUrls[0],
+                    sc2: screenshotUrls[1],
+                    sc3: screenshotUrls[2],
                     project: downloadLink,
-                    time: firebase.database.ServerValue.TIMESTAMP
+                    time: new Date().toLocaleString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: 'numeric',
+                        hour12: true
+                    }),
+                    uid: user.uid
                 };
 
-                // حفظ البيانات
-                await db.ref(dbPath).push(appData);
-                showAlert('success', 'تم الرفع بنجاح!');
-                resetForm();
+                await db.ref(appType === 'swb' ? 'data1' : 'data2').push(appData);
+                
+                // إظهار نافذة النجاح
+                document.getElementById('uploadStatus').style.display = 'none';
+                document.getElementById('successModal').style.display = 'flex';
+                submitBtn.disabled = false;
 
             } catch (error) {
+                document.getElementById('uploadStatus').style.display = 'none';
+                submitBtn.disabled = false;
                 showAlert('error', `حدث خطأ: ${error.message}`);
             }
         });
 
+        // ======= دوال مساعدة =======
         async function uploadFile(file, path) {
             return new Promise((resolve, reject) => {
                 const storageRef = storage.ref(`${path}/${Date.now()}_${file.name}`);
@@ -510,31 +568,39 @@
 
                 uploadTask.on('state_changed',
                     (snapshot) => {
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
                         document.getElementById('progressBar').style.width = progress + '%';
+                        document.getElementById('progressText').textContent = progress + '%';
                     },
                     (error) => reject(error),
-                    () => uploadTask.snapshot.ref.getDownloadURL().then(resolve).catch(reject)
+                    () => uploadTask.snapshot.ref.getDownloadURL().then(resolve)
                 );
             });
         }
 
         function showAlert(type, message) {
             const alertBox = document.getElementById('alert');
-            alertBox.className = `alert alert-${type}`;
+            alertBox.className = `alert-${type}`;
             alertBox.textContent = message;
             alertBox.style.display = 'block';
             setTimeout(() => alertBox.style.display = 'none', 5000);
         }
 
         function resetForm() {
-            document.getElementById('uploadForm').reset();
+            uploadForm.reset();
             document.getElementById('iconPreview').src = '';
-            document.getElementById('screenshotsGrid').innerHTML = '';
+            screenshotsGrid.innerHTML = '';
             document.getElementById('progressBar').style.width = '0%';
             document.getElementById('appSize').value = '';
             handleFileOption('file');
         }
-    </script>
+
+        // إغلاق نافذة التأكيد
+        window.closeModal = function() {
+            document.getElementById('successModal').style.display = 'none';
+            resetForm();
+        }
+    });
+</script>
 </body>
 </html>
